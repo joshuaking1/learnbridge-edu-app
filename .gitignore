@@ -1,0 +1,24 @@
+# Node modules & build outputs for Next.js
+node_modules/
+.next/
+out/
+.build/
+# Optional if you use Yarn or npm build cache
+.yarn/*cache*/
+*.log
+
+# Environment variable files
+.env
+.env.local
+.env.development
+.env.production
+# Supabase CLI config and secrets
+supabase/.env
+supabase/functions/.env
+supabase/.branches/
+supabase/.temp/
+
+# IDE/editor files
+.vscode/
+.idea/
+.DS_Store
