@@ -1,77 +1,122 @@
 // supabase/functions/generate-pdf/index.ts
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import puppeteer from 'https://esm.sh/puppeteer-core@22.10.0';
 
-// Helper function to generate HTML from our lesson plan JSON
+const API2PDF_KEY = Deno.env.get('API2PDF_KEY');
+const API_ENDPOINT = 'https://v2018.api2pdf.com/chrome/html';
+
+// Same helper function to generate HTML from our lesson plan JSON
 const generateLessonPlanHtml = (data: any) => {
     const { inputs, aiContent } = data;
-    // This is a basic HTML template. It can be styled extensively with CSS.
     return `
         <html>
             <head>
                 <style>
-                    body { font-family: sans-serif; padding: 20px; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; padding: 40px; font-size: 14px; line-height: 1.6; }
                     h1, h2, h3 { color: #022e7d; }
-                    table { width: 100%; border-collapse: collapse; }
-                    td, th { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; }
+                    h1 { font-size: 28px; } h2 { font-size: 22px; border-bottom: 1px solid #eee; padding-bottom: 5px; } h3 { font-size: 18px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                    td, th { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                    th { background-color: #f2f2f2; font-weight: bold; }
+                    .meta-table { margin-bottom: 20px; }
+                    .meta-table td { border: none; padding: 2px 0; }
                 </style>
             </head>
             <body>
                 <h1>Lesson Plan: ${inputs.subject}</h1>
-                <h2>Topic: ${aiContent.contentStandard || inputs.topic}</h2>
-                <hr/>
-                <h3>Learning Objectives</h3>
+                <table class="meta-table">
+                    <tr><td><b>Topic:</b></td><td>${aiContent.contentStandard || inputs.topic}</td></tr>
+                    <tr><td><b>Form/Class:</b></td><td>${inputs.grade}</td></tr>
+                    <tr><td><b>Week:</b></td><td>${inputs.week}</td></tr>
+                </table>
+                
+                <h2>Learning Objectives</h2>
                 <p>${aiContent.learningIndicator}</p>
-                <h3>Pedagogical Strategies</h3>
+                
+                <h2>Pedagogical Strategies</h2>
                 <p>${aiContent.pedagogicalStrategies.join(', ')}</p>
-                {/* Add more sections as needed */}
+
+                <h2>Teaching & Learning Resources</h2>
+                <ul>${aiContent.teachingAndLearningResources.map((r: string) => `<li>${r}</li>`).join('')}</ul>
+                
+                <h2>Essential Questions</h2>
+                <ul>${aiContent.essentialQuestions.map((q: string) => `<li>${q}</li>`).join('')}</ul>
+                
+                <h2>Differentiation Notes</h2>
+                <ul>${aiContent.differentiationNotes.map((n: string) => `<li>${n}</li>`).join('')}</ul>
+                
+                <h2>Lesson Activities</h2>
+                
+                <h3>Starter Activity</h3>
+                <table>
+                    <tr><th>Teacher</th><th>Learner</th></tr>
+                    <tr><td>${aiContent.starterActivity.teacher}</td><td>${aiContent.starterActivity.learner}</td></tr>
+                </table>
+                
+                <h3>Introductory Activity</h3>
+                <table>
+                    <tr><th>Teacher</th><th>Learner</th></tr>
+                    <tr><td>${aiContent.introductoryActivity.teacher}</td><td>${aiContent.introductoryActivity.learner}</td></tr>
+                </table>
+                
+                <h3>Main Activity 1</h3>
+                <table>
+                    <tr><th>Teacher</th><th>Learner</th></tr>
+                    <tr><td>${aiContent.mainActivity1.teacher}</td><td>${aiContent.mainActivity1.learner}</td></tr>
+                </table>
+                
+                <h3>Main Activity 2</h3>
+                <table>
+                    <tr><th>Teacher</th><th>Learner</th></tr>
+                    <tr><td>${aiContent.mainActivity2.teacher}</td><td>${aiContent.mainActivity2.learner}</td></tr>
+                </table>
+                
+                <h3>Lesson Closure</h3>
+                <table>
+                    <tr><th>Teacher</th><th>Learner</th></tr>
+                    <tr><td>${aiContent.lessonClosure.teacher}</td><td>${aiContent.lessonClosure.learner}</td></tr>
+                </table>
             </body>
         </html>
     `;
 };
 
 Deno.serve(async (req) => {
-  const { content, fileName, userId } = await req.json();
+  const { content, fileName } = await req.json();
 
-  if (!content || !fileName || !userId) {
+  if (!content || !fileName) {
     return new Response(JSON.stringify({ error: 'Missing parameters' }), { status: 400 });
   }
 
   const htmlContent = generateLessonPlanHtml(content.structured_content);
-  const filePath = `generated-pdfs/${userId}/${fileName.replace(/ /g, '_')}.pdf`;
   
   try {
-    // Launch a headless browser using a browser endpoint
-    const browser = await puppeteer.connect({
-        browserWSEndpoint: `wss://browser.lite.supabase.com?token=${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+    // Call the external API to convert our HTML to a PDF
+    const response = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Authorization': API2PDF_KEY!,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            html: htmlContent,
+            fileName: `${fileName.replace(/ /g, '_')}.pdf`,
+            inline: false // This gives us a URL to the PDF instead of the raw file
+        })
     });
 
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-    await browser.close();
+    if (!response.ok) {
+        const errorBody = await response.json();
+        throw new Error(errorBody.message || "Failed to convert HTML to PDF.");
+    }
 
-    // Upload the generated PDF to Supabase Storage
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const result = await response.json();
 
-    const { error: uploadError } = await supabaseAdmin.storage
-        .from('teacher_resources') // We can reuse this bucket
-        .upload(filePath, pdfBuffer, { contentType: 'application/pdf', upsert: true });
+    if (!result.success) {
+        throw new Error(result.error);
+    }
 
-    if (uploadError) throw uploadError;
-
-    // Generate a signed URL for the user to download the file
-    const { data, error: urlError } = await supabaseAdmin.storage
-        .from('teacher_resources')
-        .createSignedUrl(filePath, 300); // URL is valid for 5 minutes
-
-    if (urlError) throw urlError;
-
-    return new Response(JSON.stringify({ downloadUrl: data.signedUrl }), {
+    // The result.pdf contains the URL to the generated PDF.
+    return new Response(JSON.stringify({ downloadUrl: result.pdf }), {
         headers: { 'Content-Type': 'application/json' },
         status: 200,
     });
