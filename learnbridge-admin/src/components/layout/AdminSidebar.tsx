@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Settings,
   LogOut,
+  HelpCircle,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 // We will create this action file next
@@ -27,6 +28,7 @@ const navLinks = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
   { href: "/dashboard/curriculum", icon: BookOpen, label: "Curriculum Mgmt" },
   { href: "/dashboard/users", icon: Users, label: "User Management" },
+  { href: "/dashboard/questions", icon: HelpCircle, label: "Question Bank" },
   { href: "/dashboard/analytics", icon: BarChart, label: "Platform Analytics" },
   { href: "/dashboard/moderation", icon: ShieldCheck, label: "Moderation" },
 ];
