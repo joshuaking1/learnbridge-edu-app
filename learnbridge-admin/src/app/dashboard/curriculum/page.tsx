@@ -25,12 +25,7 @@ async function CurriculumManagementPage() {
   // We will create an RLS policy to allow this.
   const { data: documents, error } = await supabase
     .from("sbc_curriculum_documents")
-    .select(
-      `
-            *,
-            uploader: profiles (full_name)
-        `
-    )
+    .select(`*,uploader:profiles (full_name)`)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -81,15 +76,21 @@ async function CurriculumManagementPage() {
             <TableBody>
               {documents?.map((doc) => (
                 <TableRow key={doc.id} className="border-slate-700">
-                  <TableCell className="font-medium text-white">{doc.file_name}</TableCell>
+                  <TableCell className="font-medium text-white">
+                    {doc.file_name}
+                  </TableCell>
                   <TableCell className="text-white">{doc.subject}</TableCell>
-                  <TableCell className="text-white">{doc.grade_level}</TableCell>
+                  <TableCell className="text-white">
+                    {doc.grade_level}
+                  </TableCell>
                   <TableCell className="text-white">
                     <Badge variant={getStatusVariant(doc.status)}>
                       {doc.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-white">{doc.uploader?.full_name || "N/A"}</TableCell>
+                  <TableCell className="text-white">
+                    {doc.uploader?.full_name || "N/A"}
+                  </TableCell>
                   <TableCell className="text-white">
                     {new Date(doc.created_at).toLocaleDateString()}
                   </TableCell>
