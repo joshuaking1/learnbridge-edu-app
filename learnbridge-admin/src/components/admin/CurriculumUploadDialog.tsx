@@ -16,8 +16,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Loader2 } from "lucide-react";
+import { PlusCircle, Loader2, AlertCircle } from "lucide-react"; // Added AlertCircle
 import { ingestSBCDocument } from "@/app/dashboard/curriculum/actions";
+
+// The initial state for the form action
+const initialState = {
+    success: false,
+    error: undefined,
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -42,13 +48,9 @@ function SubmitButton() {
 export function CurriculumUploadDialog() {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction] = useActionState(ingestSBCDocument, {
-    success: false,
-    error: null,
-  });
+  const [state, formAction] = useActionState(ingestSBCDocument, initialState);
 
   useEffect(() => {
-    // This effect will close the dialog and reset the form on successful submission
     if (state.success && open) {
       setOpen(false);
       formRef.current?.reset();
@@ -70,7 +72,6 @@ export function CurriculumUploadDialog() {
             generate embeddings.
           </DialogDescription>
         </DialogHeader>
-        {/* THIS IS THE MISSING FORM JSX */}
         <form ref={formRef} action={formAction} className="space-y-4 pt-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -103,9 +104,17 @@ export function CurriculumUploadDialog() {
               className="bg-slate-800 border-slate-600 file:text-slate-300"
             />
           </div>
+          
           {state.error && (
-            <p className="text-sm text-red-500">{state.error.message}</p>
+            <div className="bg-red-900/50 text-red-200 border border-red-800/50 p-3 rounded-md flex items-start gap-2 text-sm">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0"/> 
+                <div>
+                    <p className="font-bold">Ingestion Failed</p>
+                    <p>{state.error.message}</p>
+                </div>
+            </div>
           )}
+
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="secondary">
