@@ -12,13 +12,18 @@ import { Badge } from "@/components/ui/badge";
 import { BrainCircuit, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTransition } from "react";
-import { performCurriculumAutopsy } from "@/app/dashboard/curriculum/actions";
+// import { performCurriculumAutopsy } from "@/app/dashboard/curriculum/actions";
 
 const AutopsyButton = ({ documentId }: { documentId: string }) => {
   const [isPending, startTransition] = useTransition();
 
-  const handleAutopsy = () =>
-    startTransition(() => performCurriculumAutopsy(documentId));
+  const handleAutopsy = () => {
+    // TODO: Implement autopsy functionality
+    startTransition(() => {
+      // performCurriculumAutopsy(documentId);
+      console.log("Autopsy requested for document:", documentId);
+    });
+  };
 
   return (
     <Button
@@ -36,7 +41,19 @@ const AutopsyButton = ({ documentId }: { documentId: string }) => {
   );
 };
 
-export const CurriculumTable = ({ documents }: { documents: any[] }) => {
+interface CurriculumDocument {
+  id: string;
+  file_name: string;
+  status: string;
+  created_at: string;
+  error_message?: string;
+}
+
+export const CurriculumTable = ({
+  documents,
+}: {
+  documents: CurriculumDocument[];
+}) => {
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "completed":
