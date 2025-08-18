@@ -158,7 +158,7 @@ export const QuestionUploader = () => {
           Upload a CSV file with your questions. Required columns: exam_type,
           subject, topic, question_text, question_type, options, correct_answer,
           difficulty_level, source_year. For MCQs, the 'options' column must be
-          a valid JSON array string (e.g., '["A", "B", "C"]').
+          a valid JSON array string (e.g, '["A", "B", "C"]').
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
