@@ -1,50 +1,54 @@
 // supabase/functions/text-to-embedding/index.ts
-const HF_EMBED_URL = 'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction';
-const HF_TOKEN = Deno.env.get('HUGGINGFACE_ACCESS_TOKEN');
+import { corsHeaders } from '../_shared/cors.ts'
 
-async function fetchWithRetry(url: string, opts: RequestInit, attempts = 2) {
-  for (let i = 1; i <= attempts; i++) {
-    const res = await fetch(url + '?wait_for_model=true', opts);
-    if (res.ok) return res;
-    if ((res.status === 404 || res.status === 422) && i < attempts) {
-      console.warn(`Attempt ${i} failed (${res.status}); retrying...`);
-      await new Promise(r => setTimeout(r, 500));
-      continue;
-    }
-    return res;
-  }
-  throw new Error('Retry limit reached');
-}
+const CF_ACCOUNT_ID = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
+const CF_API_TOKEN = Deno.env.get('CLOUDFLARE_API_TOKEN');
+
+// The specific, battle-tested model we will use on Cloudflare's infrastructure
+const MODEL = '@cf/baai/bge-small-en-v1.5';
 
 Deno.serve(async (req) => {
+  // This is needed to handle OPTIONS requests from the browser
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     const { text } = await req.json();
     if (!text) throw new Error("Missing 'text' in request body");
 
-    const res = await fetchWithRetry(HF_EMBED_URL, {
+    // Construct the Cloudflare API URL
+    const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${MODEL}`;
+
+    // Call the Cloudflare API
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${HF_TOKEN}`,
+        'Authorization': `Bearer ${CF_API_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ inputs: [text] }),
+      body: JSON.stringify({ text: [text] }), // Cloudflare expects an array of texts
     });
 
-    if (!res.ok) {
-      const errorBody = await res.text();
-      throw new Error(`HF API Error: ${res.status} ${errorBody}`);
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Cloudflare AI Error: ${response.status} ${errorBody}`);
     }
 
-    const embeddings: number[][] = await res.json();
-    const embedding = embeddings[0];
+    const result = await response.json();
+    
+    // The embedding is in result.result.data[0]
+    const embedding = result.result.data[0];
 
     return new Response(JSON.stringify({ embedding }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error("Text to Embedding Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 });
