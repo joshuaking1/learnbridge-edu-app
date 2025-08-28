@@ -47,7 +47,8 @@ export const AdminSidebar = ({ user }: { user: UserProfile }) => {
 
   return (
     <aside className="w-64 h-screen flex flex-col bg-slate-900 text-slate-200 p-4 fixed border-r border-slate-700">
-      <div className="font-serif text-2xl font-bold mb-8 pl-2 text-white">
+      <div className="mb-8 pl-2">
+        <div className="text-white font-bold text-xl">LearnBridge</div>
         LearnBridge <span className="text-brand-orange">Admin</span>
       </div>
 
