@@ -6,9 +6,14 @@ const nextConfig: NextConfig = {
     // ❗ Skips ESLint during `next build`, even if there are errors
     ignoreDuringBuilds: true,
   },
-   typescript: {
+  typescript: {
     // ⚠️ Skip type errors during production builds
     ignoreBuildErrors: true,
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb', // Increase body size limit to 10MB
+    },
   },
 };
 

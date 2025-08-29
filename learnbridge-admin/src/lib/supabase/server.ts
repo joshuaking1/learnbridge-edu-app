@@ -14,10 +14,21 @@ export async function createClient() {
           return cookieStore.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
+          // Only set cookies in server actions or route handlers
+          // For server components, we'll just ignore cookie setting
+          try {
+            cookieStore.set({ name, value, ...options })
+          } catch (error) {
+            // Silently ignore cookie setting errors in read-only contexts
+            // This prevents the app from breaking when Supabase tries to refresh tokens
+          }
         },
         remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
+          try {
+            cookieStore.set({ name, value: '', ...options })
+          } catch (error) {
+            // Silently ignore cookie removal errors in read-only contexts
+          }
         },
       },
     }
