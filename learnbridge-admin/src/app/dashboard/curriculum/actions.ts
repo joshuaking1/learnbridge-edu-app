@@ -44,8 +44,15 @@ export async function ingestSBCDocument(prevState: IngestionState, formData: For
     const sanitizedText = functionResponse.text.replace(/\u0000/g, '');
 
     const { data: newDocument, error: dbError } = await supabase.from('sbc_curriculum_documents').insert({
-        uploader_id: user.id, subject, grade_level: grade, file_name: file.name,
-        file_path: filePath, raw_text: sanitizedText, status: 'pending'
+        uploader_id: user.id, 
+        title: `${subject} - ${grade}`, // Generate title from subject and grade
+        subject, 
+        grade_level: grade, 
+        file_name: file.name,
+        file_path: filePath, 
+        raw_text: sanitizedText, 
+        content: sanitizedText, // Use sanitized text as content
+        status: 'pending'
     }).select('id').single();
 
     if (dbError || !newDocument) throw new Error(`Database Error: ${dbError?.message || "Failed to retrieve new document ID."}`);

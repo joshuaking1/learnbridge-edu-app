@@ -25,7 +25,7 @@ async function CurriculumManagementPage() {
   // We will create an RLS policy to allow this.
   const { data: documents, error } = await supabase
     .from("sbc_curriculum_documents")
-    .select(`*,uploader:profiles (full_name)`)
+    .select(`*`)
     .order("created_at", { ascending: false });
 
   if (error) {
