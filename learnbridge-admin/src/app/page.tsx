@@ -4,11 +4,9 @@ export default function Home() {
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <img
-          src="/logo-simple.svg"
-          alt="LearnBridge"
-          className="h-auto w-auto max-w-[180px] max-h-[50px]"
-        />
+        <div className="font-bold text-3xl">
+          <span className="text-orange-500">Learn</span><span className="text-blue-500">Bridg</span><span className="text-white">Edu</span>
+        </div>
         <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{" "}
