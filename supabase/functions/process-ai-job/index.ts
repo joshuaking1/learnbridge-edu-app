@@ -1,6 +1,7 @@
 // supabase/functions/process-ai-job/index.ts
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { trackEdgeFunctionEvent } from '../_shared/posthog.ts'
 
 // Self-contained embedding function using Cloudflare AI
 async function generateEmbedding(text: string): Promise<number[] | null> {
@@ -47,6 +48,14 @@ Deno.serve(async (req) => {
   try {
     const { record: job } = await req.json(); // Triggered by a webhook
     
+    // Track AI job processing start
+    await trackEdgeFunctionEvent('ai_job_processing_started', {
+      job_id: job.id,
+      job_type: job.job_type,
+      user_id: job.user_id,
+      timestamp: new Date().toISOString()
+    });
+    
     // Create admin client with service role key
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -62,6 +71,14 @@ Deno.serve(async (req) => {
       throw new Error(`Unknown job type: ${job.job_type}`);
     }
 
+    // Track successful AI job completion
+    await trackEdgeFunctionEvent('ai_job_processing_completed', {
+      job_id: job.id,
+      job_type: job.job_type,
+      user_id: job.user_id,
+      timestamp: new Date().toISOString()
+    });
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
@@ -69,6 +86,13 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Process AI Job Error:', error);
+    
+    // Track AI job processing error
+    await trackEdgeFunctionEvent('ai_job_processing_failed', {
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
