@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Loader2, AlertCircle } from "lucide-react"; // Added AlertCircle
 import { ingestSBCDocument } from "@/app/dashboard/curriculum/actions";
+import { ErrorDisplay } from "@/components/ui/error-display";
 
 // The initial state for the form action
 const initialState = {
@@ -106,13 +107,11 @@ export function CurriculumUploadDialog() {
           </div>
           
           {state.error && (
-            <div className="bg-red-900/50 text-red-200 border border-red-800/50 p-3 rounded-md flex items-start gap-2 text-sm">
-                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0"/> 
-                <div>
-                    <p className="font-bold">Ingestion Failed</p>
-                    <p>{state.error.message}</p>
-                </div>
-            </div>
+            <ErrorDisplay 
+              error={state.error} 
+              title="Document Ingestion Failed"
+              className="text-sm"
+            />
           )}
 
           <DialogFooter>

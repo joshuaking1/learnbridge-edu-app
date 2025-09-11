@@ -22,10 +22,12 @@ import {
 } from "@/components/ui/table";
 import { Upload, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { bulkUploadQuestions } from "@/app/dashboard/questions/actions";
+import { ErrorDisplay } from "@/components/ui/error-display";
 
 export const QuestionUploader = () => {
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [detailedError, setDetailedError] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -33,14 +35,46 @@ export const QuestionUploader = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log("🚀 Starting CSV file parsing:", { 
+      fileName: file.name, 
+      fileSize: file.size, 
+      fileType: file.type 
+    });
+
     setParsedData([]);
     setErrors([]);
+    setDetailedError(null);
     setSuccessMessage(null);
 
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
+        console.log("📄 CSV parsing completed:", {
+          rowCount: results.data?.length || 0,
+          hasErrors: results.errors?.length > 0,
+          meta: results.meta
+        });
+
+        if (results.errors?.length > 0) {
+          console.error("❌ CSV parsing errors:", results.errors);
+          setDetailedError({
+            message: "CSV file parsing failed",
+            code: "CSV_PARSE_ERROR",
+            details: {
+              parseErrors: results.errors,
+              fileName: file.name,
+              fileSize: file.size
+            },
+            context: {
+              rowsParsed: results.data?.length || 0,
+              parseMethod: "Papa Parse"
+            },
+            timestamp: new Date().toISOString()
+          });
+          return;
+        }
+
         const validationErrors: string[] = [];
 
         // --- 100x DATA TRANSFORMATION & VALIDATION LOGIC ---
@@ -132,22 +166,53 @@ export const QuestionUploader = () => {
 
   const handleUpload = async () => {
     if (parsedData.length === 0) return;
+    
+    console.log("🚀 Starting bulk question upload:", { questionsCount: parsedData.length });
+    
     setIsLoading(true);
     setSuccessMessage(null);
     setErrors([]);
+    setDetailedError(null);
 
-    // The data sent to the action is now clean and perfectly typed.
-    const result = await bulkUploadQuestions(parsedData);
+    try {
+      // The data sent to the action is now clean and perfectly typed.
+      const result = await bulkUploadQuestions(parsedData);
 
-    if (result.error) {
-      setErrors([result.error]);
-    } else {
-      setSuccessMessage(
-        `${result.count} questions were successfully uploaded!`
-      );
-      setParsedData([]);
+      if (result.error) {
+        console.error("❌ Bulk upload failed:", result);
+        
+        if (result.errorDetails) {
+          setDetailedError(result.errorDetails);
+        } else {
+          setErrors([result.error]);
+        }
+      } else if (result.success) {
+        console.log("✅ Bulk upload successful:", result);
+        setSuccessMessage(
+          `${result.count} questions were successfully uploaded!`
+        );
+        setParsedData([]);
+      }
+    } catch (error: any) {
+      console.error("❌ Unexpected client-side error:", error);
+      setDetailedError({
+        message: "Client-side error during upload",
+        code: "CLIENT_ERROR",
+        details: {
+          errorName: error.name,
+          errorMessage: error.message,
+          questionsCount: parsedData.length
+        },
+        stack: error.stack,
+        context: {
+          location: "QuestionUploader.handleUpload",
+          questionsCount: parsedData.length
+        },
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -169,7 +234,17 @@ export const QuestionUploader = () => {
           className="bg-slate-800 border-slate-600 file:text-slate-300"
         />
 
-        {errors.length > 0 && (
+        {/* Detailed Error Display */}
+        {detailedError && (
+          <ErrorDisplay 
+            error={detailedError} 
+            title="Question Upload Error"
+            className="text-sm"
+          />
+        )}
+
+        {/* Simple Validation Errors */}
+        {errors.length > 0 && !detailedError && (
           <div className="p-4 bg-red-900/50 border border-red-500 rounded-md">
             <h4 className="font-bold text-red-400 flex items-center">
               <AlertCircle className="mr-2" />
