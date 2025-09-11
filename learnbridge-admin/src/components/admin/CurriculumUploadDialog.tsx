@@ -31,7 +31,7 @@ function SubmitButton() {
     <Button
       type="submit"
       disabled={pending}
-      className="bg-brand-orange hover:bg-brand-orange/90"
+      className="bg-orange-600 hover:bg-orange-700"
     >
       {pending ? (
         <>
@@ -60,7 +60,7 @@ export function CurriculumUploadDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-brand-orange hover:bg-brand-orange/90">
+        <Button className="bg-orange-600 hover:bg-orange-700">
           <PlusCircle className="mr-2 h-4 w-4" /> Ingest New Document
         </Button>
       </DialogTrigger>
