@@ -9,44 +9,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BrainCircuit, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTransition } from "react";
-// import { performCurriculumAutopsy } from "@/app/dashboard/curriculum/actions";
-
-const AutopsyButton = ({ documentId }: { documentId: string }) => {
-  const [isPending, startTransition] = useTransition();
-
-  const handleAutopsy = () => {
-    // TODO: Implement autopsy functionality
-    startTransition(() => {
-      // performCurriculumAutopsy(documentId);
-      console.log("Autopsy requested for document:", documentId);
-    });
-  };
-
-  return (
-    <Button
-      onClick={handleAutopsy}
-      disabled={isPending}
-      size="sm"
-      variant="outline"
-    >
-      {isPending ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <BrainCircuit className="h-4 w-4" />
-      )}
-    </Button>
-  );
-};
 
 interface CurriculumDocument {
   id: string;
   file_name: string;
+  subject?: string;
+  grade_level?: string;
   status: string;
   created_at: string;
   error_message?: string;
+  uploader?: {
+    full_name: string;
+  };
 }
 
 export const CurriculumTable = ({
@@ -56,13 +31,15 @@ export const CurriculumTable = ({
 }) => {
   const getStatusVariant = (status: string) => {
     switch (status) {
+      case "embedding_complete":
       case "completed":
         return "default" as const;
       case "processing":
         return "secondary" as const;
-      case "pending_autopsy":
+      case "pending":
         return "outline" as const;
       case "failed":
+      case "error":
         return "destructive" as const;
       case "parsing":
         return "outline" as const;
@@ -73,18 +50,21 @@ export const CurriculumTable = ({
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "pending_autopsy":
-        return "Ready for Autopsy";
+      case "pending":
+        return "Pending Processing";
       case "parsing":
         return "Parsing PDF";
       case "processing":
         return "AI Processing";
+      case "embedding_complete":
+        return "Ready";
       case "completed":
         return "Completed";
       case "failed":
+      case "error":
         return "Failed";
       default:
-        return status;
+        return status || "Unknown";
     }
   };
 
@@ -93,7 +73,10 @@ export const CurriculumTable = ({
       <TableHeader>
         <TableRow className="hover:bg-slate-800 border-slate-700">
           <TableHead className="text-white">File Name</TableHead>
+          <TableHead className="text-white">Subject</TableHead>
+          <TableHead className="text-white">Grade</TableHead>
           <TableHead className="text-white">Status</TableHead>
+          <TableHead className="text-white">Uploader</TableHead>
           <TableHead className="text-white">Date</TableHead>
           <TableHead className="text-right text-white">Actions</TableHead>
         </TableRow>
@@ -101,7 +84,7 @@ export const CurriculumTable = ({
       <TableBody>
         {documents.length === 0 ? (
           <TableRow className="border-slate-700">
-            <TableCell colSpan={4} className="text-center text-slate-400 py-8">
+            <TableCell colSpan={7} className="text-center text-slate-400 py-8">
               No documents uploaded yet. Upload your first SBC document to get
               started.
             </TableCell>
@@ -111,6 +94,12 @@ export const CurriculumTable = ({
             <TableRow key={doc.id} className="border-slate-700">
               <TableCell className="font-medium text-white">
                 {doc.file_name}
+              </TableCell>
+              <TableCell className="text-white">
+                {doc.subject || "N/A"}
+              </TableCell>
+              <TableCell className="text-white">
+                {doc.grade_level || "N/A"}
               </TableCell>
               <TableCell className="text-white">
                 <div className="flex flex-col gap-1">
@@ -127,11 +116,24 @@ export const CurriculumTable = ({
                 </div>
               </TableCell>
               <TableCell className="text-white">
+                {doc.uploader?.full_name || "N/A"}
+              </TableCell>
+              <TableCell className="text-white">
                 {new Date(doc.created_at).toLocaleDateString()}
               </TableCell>
               <TableCell className="text-right text-white">
-                {doc.status === "pending_autopsy" && (
-                  <AutopsyButton documentId={doc.id} />
+                {(doc.status === "failed" || doc.status === "error") && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                    onClick={() => {
+                      // TODO: Implement retry functionality
+                      console.log("Retry processing for document:", doc.id);
+                    }}
+                  >
+                    Retry
+                  </Button>
                 )}
               </TableCell>
             </TableRow>
